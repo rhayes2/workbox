@@ -6,16 +6,16 @@
   https://opensource.org/licenses/MIT.
 */
 
-import {BackgroundSyncPlugin} from 'workbox-background-sync/BackgroundSyncPlugin.js';
-import {Queue} from 'workbox-background-sync/Queue.js';
-import {cacheNames} from 'workbox-core/_private/cacheNames.js';
-import {getFriendlyURL} from 'workbox-core/_private/getFriendlyURL.js';
-import {logger} from 'workbox-core/_private/logger.js';
-import {RouteMatchCallbackOptions} from 'workbox-core/types.js';
-import {Route} from 'workbox-routing/Route.js';
-import {Router} from 'workbox-routing/Router.js';
-import {NetworkFirst} from 'workbox-strategies/NetworkFirst.js';
-import {NetworkOnly} from 'workbox-strategies/NetworkOnly.js';
+import { BackgroundSyncPlugin } from 'workbox-background-sync/BackgroundSyncPlugin.js';
+import { Queue } from 'workbox-background-sync/Queue.js';
+import { cacheNames } from 'workbox-core/_private/cacheNames.js';
+import { getFriendlyURL } from 'workbox-core/_private/getFriendlyURL.js';
+import { logger } from 'workbox-core/_private/logger.js';
+import { RouteMatchCallbackOptions } from 'workbox-core/types.js';
+import { Route } from 'workbox-routing/Route.js';
+import { Router } from 'workbox-routing/Router.js';
+import { NetworkFirst } from 'workbox-strategies/NetworkFirst.js';
+import { NetworkOnly } from 'workbox-strategies/NetworkOnly.js';
 import {
   QUEUE_NAME,
   MAX_RETENTION_TIME,
@@ -30,7 +30,7 @@ import './_version.js';
 
 export interface GoogleAnalyticsInitializeOptions {
   cacheName?: string;
-  parameterOverrides?: {[paramName: string]: string};
+  parameterOverrides?: { [paramName: string]: string };
   hitFilter?: (params: URLSearchParams) => void;
 }
 
@@ -46,10 +46,10 @@ export interface GoogleAnalyticsInitializeOptions {
  * @private
  */
 const createOnSyncCallback = (config: GoogleAnalyticsInitializeOptions) => {
-  return async ({queue}: {queue: Queue}) => {
+  return async ({ queue }: { queue: Queue }) => {
     let entry;
     while ((entry = await queue.shiftRequest())) {
-      const {request, timestamp} = entry;
+      const { request, timestamp } = entry;
       const url = new URL(request.url);
 
       try {
@@ -66,13 +66,13 @@ const createOnSyncCallback = (config: GoogleAnalyticsInitializeOptions) => {
         const queueTime = Date.now() - originalHitTime;
 
         // Set the qt param prior to applying hitFilter or parameterOverrides.
-        params.set('qt', String(queueTime));
+        params.set('ep.qt', String(queueTime));
 
         // Apply `parameterOverrides`, if set.
         if (config.parameterOverrides) {
           for (const param of Object.keys(config.parameterOverrides)) {
             const value = config.parameterOverrides[param];
-            params.set(param, value);
+            params.set(`ep.${param}`, value);
           }
         }
 
@@ -84,12 +84,12 @@ const createOnSyncCallback = (config: GoogleAnalyticsInitializeOptions) => {
         // Retry the fetch. Ignore URL search params from the URL as they're
         // now in the post body.
         await fetch(
-          new Request(url.origin + url.pathname, {
+          new Request(request.url, {
             body: params.toString(),
             method: 'POST',
             mode: 'cors',
             credentials: 'omit',
-            headers: {'Content-Type': 'text/plain'},
+            headers: { 'Content-Type': 'text/plain' },
           }),
         );
 
@@ -104,7 +104,7 @@ const createOnSyncCallback = (config: GoogleAnalyticsInitializeOptions) => {
         if (process.env.NODE_ENV !== 'production') {
           logger.log(
             `Request for '${getFriendlyURL(url.href)}' ` +
-              `failed to replay, putting it back in the queue.`,
+            `failed to replay, putting it back in the queue.`,
           );
         }
         throw err;
@@ -113,7 +113,7 @@ const createOnSyncCallback = (config: GoogleAnalyticsInitializeOptions) => {
     if (process.env.NODE_ENV !== 'production') {
       logger.log(
         `All Google Analytics request successfully replayed; ` +
-          `the queue is now empty!`,
+        `the queue is now empty!`,
       );
     }
   };
@@ -128,7 +128,7 @@ const createOnSyncCallback = (config: GoogleAnalyticsInitializeOptions) => {
  * @private
  */
 const createCollectRoutes = (bgSyncPlugin: BackgroundSyncPlugin) => {
-  const match = ({url}: RouteMatchCallbackOptions) =>
+  const match = ({ url }: RouteMatchCallbackOptions) =>
     url.hostname === GOOGLE_ANALYTICS_HOST &&
     COLLECT_PATHS_REGEX.test(url.pathname);
 
@@ -148,11 +148,11 @@ const createCollectRoutes = (bgSyncPlugin: BackgroundSyncPlugin) => {
  * @private
  */
 const createAnalyticsJsRoute = (cacheName: string) => {
-  const match = ({url}: RouteMatchCallbackOptions) =>
+  const match = ({ url }: RouteMatchCallbackOptions) =>
     url.hostname === GOOGLE_ANALYTICS_HOST &&
     url.pathname === ANALYTICS_JS_PATH;
 
-  const handler = new NetworkFirst({cacheName});
+  const handler = new NetworkFirst({ cacheName });
 
   return new Route(match, handler, 'GET');
 };
@@ -166,10 +166,10 @@ const createAnalyticsJsRoute = (cacheName: string) => {
  * @private
  */
 const createGtagJsRoute = (cacheName: string) => {
-  const match = ({url}: RouteMatchCallbackOptions) =>
+  const match = ({ url }: RouteMatchCallbackOptions) =>
     url.hostname === GTM_HOST && url.pathname === GTAG_JS_PATH;
 
-  const handler = new NetworkFirst({cacheName});
+  const handler = new NetworkFirst({ cacheName });
 
   return new Route(match, handler, 'GET');
 };
@@ -183,10 +183,10 @@ const createGtagJsRoute = (cacheName: string) => {
  * @private
  */
 const createGtmJsRoute = (cacheName: string) => {
-  const match = ({url}: RouteMatchCallbackOptions) =>
+  const match = ({ url }: RouteMatchCallbackOptions) =>
     url.hostname === GTM_HOST && url.pathname === GTM_JS_PATH;
 
-  const handler = new NetworkFirst({cacheName});
+  const handler = new NetworkFirst({ cacheName });
 
   return new Route(match, handler, 'GET');
 };
@@ -230,4 +230,4 @@ const initialize = (options: GoogleAnalyticsInitializeOptions = {}): void => {
   router.addFetchListener();
 };
 
-export {initialize};
+export { initialize };
